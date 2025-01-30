@@ -118,11 +118,11 @@ func (opts *DialOptions) cloneWithDefaults(ctx context.Context) (context.Context
 // See docs on the HTTPClient option and https://github.com/golang/go/issues/26937#issuecomment-415855861
 //
 // URLs with http/https schemes will work and are interpreted as ws/wss.
-func Dial(ctx context.Context, u string, opts *DialOptions) (*StdConn, *http.Response, error) {
+func Dial(ctx context.Context, u string, opts *DialOptions) (Conn, *http.Response, error) {
 	return dial(ctx, u, opts, nil)
 }
 
-func dial(ctx context.Context, urls string, opts *DialOptions, rand io.Reader) (_ *StdConn, _ *http.Response, err error) {
+func dial(ctx context.Context, urls string, opts *DialOptions, rand io.Reader) (_ Conn, _ *http.Response, err error) {
 	defer errd.Wrap(&err, "failed to WebSocket dial")
 
 	var cancel context.CancelFunc

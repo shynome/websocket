@@ -15,7 +15,7 @@ import (
 
 // Pipe is used to create an in memory connection
 // between two websockets analogous to net.Pipe.
-func Pipe(dialOpts *websocket.DialOptions, acceptOpts *websocket.AcceptOptions) (clientConn, serverConn *websocket.StdConn) {
+func Pipe(dialOpts *websocket.DialOptions, acceptOpts *websocket.AcceptOptions) (clientConn, serverConn websocket.Conn) {
 	tt := fakeTransport{
 		h: func(w http.ResponseWriter, r *http.Request) {
 			serverConn, _ = websocket.Accept(w, r, acceptOpts)
