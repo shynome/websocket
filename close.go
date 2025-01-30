@@ -97,7 +97,7 @@ func CloseStatus(err error) StatusCode {
 //
 // Close will unblock all goroutines interacting with the connection once
 // complete.
-func (c *Conn) Close(code StatusCode, reason string) (err error) {
+func (c *StdConn) Close(code StatusCode, reason string) (err error) {
 	defer errd.Wrap(&err, "failed to close WebSocket")
 
 	if c.casClosing() {
@@ -130,7 +130,7 @@ func (c *Conn) Close(code StatusCode, reason string) (err error) {
 
 // CloseNow closes the WebSocket connection without attempting a close handshake.
 // Use when you do not want the overhead of the close handshake.
-func (c *Conn) CloseNow() (err error) {
+func (c *StdConn) CloseNow() (err error) {
 	defer errd.Wrap(&err, "failed to immediately close WebSocket")
 
 	if c.casClosing() {
@@ -155,7 +155,7 @@ func (c *Conn) CloseNow() (err error) {
 	return err
 }
 
-func (c *Conn) closeHandshake(code StatusCode, reason string) error {
+func (c *StdConn) closeHandshake(code StatusCode, reason string) error {
 	err := c.writeClose(code, reason)
 	if err != nil {
 		return err
@@ -168,7 +168,7 @@ func (c *Conn) closeHandshake(code StatusCode, reason string) error {
 	return nil
 }
 
-func (c *Conn) writeClose(code StatusCode, reason string) error {
+func (c *StdConn) writeClose(code StatusCode, reason string) error {
 	ce := CloseError{
 		Code:   code,
 		Reason: reason,
@@ -196,7 +196,7 @@ func (c *Conn) writeClose(code StatusCode, reason string) error {
 	return nil
 }
 
-func (c *Conn) waitCloseHandshake() error {
+func (c *StdConn) waitCloseHandshake() error {
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second*5)
 	defer cancel()
 
@@ -228,7 +228,7 @@ func (c *Conn) waitCloseHandshake() error {
 	}
 }
 
-func (c *Conn) waitGoroutines() error {
+func (c *StdConn) waitGoroutines() error {
 	t := time.NewTimer(time.Second * 15)
 	defer t.Stop()
 
@@ -328,11 +328,11 @@ func (ce CloseError) bytesErr() ([]byte, error) {
 	return buf, nil
 }
 
-func (c *Conn) casClosing() bool {
+func (c *StdConn) casClosing() bool {
 	return c.closing.Swap(true)
 }
 
-func (c *Conn) isClosed() bool {
+func (c *StdConn) isClosed() bool {
 	select {
 	case <-c.closed:
 		return true

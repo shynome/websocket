@@ -99,11 +99,11 @@ func (opts *AcceptOptions) cloneWithDefaults() *AcceptOptions {
 //
 // Note that using the http.Request Context after Accept returns may lead to
 // unexpected behavior (see http.Hijacker).
-func Accept(w http.ResponseWriter, r *http.Request, opts *AcceptOptions) (*Conn, error) {
+func Accept(w http.ResponseWriter, r *http.Request, opts *AcceptOptions) (*StdConn, error) {
 	return accept(w, r, opts)
 }
 
-func accept(w http.ResponseWriter, r *http.Request, opts *AcceptOptions) (_ *Conn, err error) {
+func accept(w http.ResponseWriter, r *http.Request, opts *AcceptOptions) (_ *StdConn, err error) {
 	defer errd.Wrap(&err, "failed to accept WebSocket connection")
 
 	errCode, err := verifyClientRequest(w, r)

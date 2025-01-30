@@ -45,7 +45,7 @@ import (
 // io.EOF when reading.
 //
 // Furthermore, the ReadLimit is set to -1 to disable it.
-func NetConn(ctx context.Context, c *Conn, msgType MessageType) net.Conn {
+func NetConn(ctx context.Context, c *StdConn, msgType MessageType) net.Conn {
 	c.SetReadLimit(-1)
 
 	nc := &netConn{
@@ -94,7 +94,7 @@ func NetConn(ctx context.Context, c *Conn, msgType MessageType) net.Conn {
 }
 
 type netConn struct {
-	c       *Conn
+	c       *StdConn
 	msgType MessageType
 
 	writeTimer   *time.Timer
