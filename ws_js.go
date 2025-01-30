@@ -19,26 +19,6 @@ import (
 	"github.com/coder/websocket/internal/wsjs"
 )
 
-// opcode represents a WebSocket opcode.
-type opcode int
-
-// https://tools.ietf.org/html/rfc6455#section-11.8.
-const (
-	opContinuation opcode = iota
-	opText
-	opBinary
-	// 3 - 7 are reserved for further non-control frames.
-	_
-	_
-	_
-	_
-	_
-	opClose
-	opPing
-	opPong
-	// 11-16 are reserved for further control frames.
-)
-
 // BrowserConn provides a wrapper around the browser WebSocket API.
 type BrowserConn struct {
 	noCopy noCopy
@@ -283,12 +263,6 @@ func (c *BrowserConn) conn() any {
 	return c.ws
 }
 
-// DialOptions represents the options available to pass to Dial.
-type DialOptions struct {
-	// Subprotocols lists the subprotocols to negotiate with the server.
-	Subprotocols []string
-}
-
 // Dial creates a new WebSocket connection to the given url with the given options.
 // The passed context bounds the maximum time spent waiting for the connection to open.
 // The returned *http.Response is always nil or a mock. It's only in the signature
@@ -438,135 +412,6 @@ func (c *BrowserConn) isClosed() bool {
 	}
 }
 
-// AcceptOptions represents Accept's options.
-type AcceptOptions struct {
-	Subprotocols         []string
-	InsecureSkipVerify   bool
-	OriginPatterns       []string
-	CompressionMode      CompressionMode
-	CompressionThreshold int
-}
-
-// Accept is stubbed out for Wasm.
-func Accept(w http.ResponseWriter, r *http.Request, opts *AcceptOptions) (*BrowserConn, error) {
-	return nil, errors.New("unimplemented")
-}
-
-// StatusCode represents a WebSocket status code.
-// https://tools.ietf.org/html/rfc6455#section-7.4
-type StatusCode int
-
-// https://www.iana.org/assignments/websocket/websocket.xhtml#close-code-number
-//
-// These are only the status codes defined by the protocol.
-//
-// You can define custom codes in the 3000-4999 range.
-// The 3000-3999 range is reserved for use by libraries, frameworks and applications.
-// The 4000-4999 range is reserved for private use.
-const (
-	StatusNormalClosure   StatusCode = 1000
-	StatusGoingAway       StatusCode = 1001
-	StatusProtocolError   StatusCode = 1002
-	StatusUnsupportedData StatusCode = 1003
-
-	// 1004 is reserved and so unexported.
-	statusReserved StatusCode = 1004
-
-	// StatusNoStatusRcvd cannot be sent in a close message.
-	// It is reserved for when a close message is received without
-	// a status code.
-	StatusNoStatusRcvd StatusCode = 1005
-
-	// StatusAbnormalClosure is exported for use only with Wasm.
-	// In non Wasm Go, the returned error will indicate whether the
-	// connection was closed abnormally.
-	StatusAbnormalClosure StatusCode = 1006
-
-	StatusInvalidFramePayloadData StatusCode = 1007
-	StatusPolicyViolation         StatusCode = 1008
-	StatusMessageTooBig           StatusCode = 1009
-	StatusMandatoryExtension      StatusCode = 1010
-	StatusInternalError           StatusCode = 1011
-	StatusServiceRestart          StatusCode = 1012
-	StatusTryAgainLater           StatusCode = 1013
-	StatusBadGateway              StatusCode = 1014
-
-	// StatusTLSHandshake is only exported for use with Wasm.
-	// In non Wasm Go, the returned error will indicate whether there was
-	// a TLS handshake failure.
-	StatusTLSHandshake StatusCode = 1015
-)
-
-// CloseError is returned when the connection is closed with a status and reason.
-//
-// Use Go 1.13's errors.As to check for this error.
-// Also see the CloseStatus helper.
-type CloseError struct {
-	Code   StatusCode
-	Reason string
-}
-
-func (ce CloseError) Error() string {
-	return fmt.Sprintf("status = %v and reason = %q", ce.Code, ce.Reason)
-}
-
-// CloseStatus is a convenience wrapper around Go 1.13's errors.As to grab
-// the status code from a CloseError.
-//
-// -1 will be returned if the passed error is nil or not a CloseError.
-func CloseStatus(err error) StatusCode {
-	var ce CloseError
-	if errors.As(err, &ce) {
-		return ce.Code
-	}
-	return -1
-}
-
-// CompressionMode represents the modes available to the deflate extension.
-// See https://tools.ietf.org/html/rfc7692
-// Works in all browsers except Safari which does not implement the deflate extension.
-type CompressionMode int
-
-const (
-	// CompressionNoContextTakeover grabs a new flate.Reader and flate.Writer as needed
-	// for every message. This applies to both server and client side.
-	//
-	// This means less efficient compression as the sliding window from previous messages
-	// will not be used but the memory overhead will be lower if the connections
-	// are long lived and seldom used.
-	//
-	// The message will only be compressed if greater than 512 bytes.
-	CompressionNoContextTakeover CompressionMode = iota
-
-	// CompressionContextTakeover uses a flate.Reader and flate.Writer per connection.
-	// This enables reusing the sliding window from previous messages.
-	// As most WebSocket protocols are repetitive, this can be very efficient.
-	// It carries an overhead of 8 kB for every connection compared to CompressionNoContextTakeover.
-	//
-	// If the peer negotiates NoContextTakeover on the client or server side, it will be
-	// used instead as this is required by the RFC.
-	CompressionContextTakeover
-
-	// CompressionDisabled disables the deflate extension.
-	//
-	// Use this if you are using a predominantly binary protocol with very
-	// little duplication in between messages or CPU and memory are more
-	// important than bandwidth.
-	CompressionDisabled
-)
-
-// MessageType represents the type of a WebSocket message.
-// See https://tools.ietf.org/html/rfc6455#section-5.6
-type MessageType int
-
-// MessageType constants.
-const (
-	// MessageText is for UTF-8 encoded text messages like JSON.
-	MessageText MessageType = iota + 1
-	// MessageBinary is for binary messages like protobufs.
-	MessageBinary
-)
-
 type jsMu struct {
 	c  *BrowserConn
 	ch chan struct{}
@@ -602,7 +447,3 @@ func (m *jsMu) unlock() {
 	default:
 	}
 }
-
-type noCopy struct{}
-
-func (*noCopy) Lock() {}

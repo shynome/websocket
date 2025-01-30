@@ -30,7 +30,7 @@ func (c *StdConn) RecordBytesRead() *int {
 
 var ErrClosed = net.ErrClosed
 
-var ExportedDial = dial
+var ExportedDial = dialStd
 var SecWebSocketAccept = secWebSocketAccept
 var SecWebSocketKey = secWebSocketKey
 var VerifyServerResponse = verifyServerResponse
