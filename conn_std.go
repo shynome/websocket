@@ -57,14 +57,14 @@ type StdConn struct {
 	timeoutLoopDone chan struct{}
 
 	// Read state.
-	readMu         *mu
+	readMu         *stdMu
 	readHeaderBuf  [8]byte
 	readControlBuf [maxControlPayload]byte
 	msgReader      *msgReader
 
 	// Write state.
 	msgWriter      *msgWriter
-	writeFrameMu   *mu
+	writeFrameMu   *stdMu
 	writeBuf       []byte
 	writeHeaderBuf [8]byte
 	writeHeader    header
@@ -124,8 +124,8 @@ func newConn(cfg connConfig) *StdConn {
 		onPongReceived: cfg.onPongReceived,
 	}
 
-	c.readMu = newMu(c)
-	c.writeFrameMu = newMu(c)
+	c.readMu = newStdMu(c)
+	c.writeFrameMu = newStdMu(c)
 
 	c.msgReader = newMsgReader(c)
 
@@ -253,27 +253,27 @@ func (c *StdConn) ping(ctx context.Context, p string) error {
 	}
 }
 
-type mu struct {
+type stdMu struct {
 	c  *StdConn
 	ch chan struct{}
 }
 
-func newMu(c *StdConn) *mu {
-	return &mu{
+func newStdMu(c *StdConn) *stdMu {
+	return &stdMu{
 		c:  c,
 		ch: make(chan struct{}, 1),
 	}
 }
 
 func (c *StdConn) newMu() muLocker {
-	return newMu(c)
+	return newStdMu(c)
 }
 
-func (m *mu) forceLock() {
+func (m *stdMu) forceLock() {
 	m.ch <- struct{}{}
 }
 
-func (m *mu) tryLock() bool {
+func (m *stdMu) tryLock() bool {
 	select {
 	case m.ch <- struct{}{}:
 		return true
@@ -282,7 +282,7 @@ func (m *mu) tryLock() bool {
 	}
 }
 
-func (m *mu) lock(ctx context.Context) error {
+func (m *stdMu) lock(ctx context.Context) error {
 	select {
 	case <-m.c.closed:
 		return net.ErrClosed
@@ -303,7 +303,7 @@ func (m *mu) lock(ctx context.Context) error {
 	}
 }
 
-func (m *mu) unlock() {
+func (m *stdMu) unlock() {
 	select {
 	case <-m.ch:
 	default:

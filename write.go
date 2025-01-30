@@ -51,8 +51,8 @@ func (c *StdConn) Write(ctx context.Context, typ MessageType, p []byte) error {
 type msgWriter struct {
 	c *StdConn
 
-	mu      *mu
-	writeMu *mu
+	mu      *stdMu
+	writeMu *stdMu
 	closed  bool
 
 	ctx    context.Context
@@ -66,8 +66,8 @@ type msgWriter struct {
 func newMsgWriter(c *StdConn) *msgWriter {
 	mw := &msgWriter{
 		c:       c,
-		mu:      newMu(c),
-		writeMu: newMu(c),
+		mu:      newStdMu(c),
+		writeMu: newStdMu(c),
 	}
 	return mw
 }
