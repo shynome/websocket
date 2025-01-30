@@ -16,4 +16,7 @@ type Conn interface {
 	Subprotocol() string
 	Write(ctx context.Context, typ MessageType, p []byte) error
 	Writer(ctx context.Context, typ MessageType) (io.WriteCloser, error)
+	conn() any
 }
+
+var _ Conn = (*StdConn)(nil)

@@ -94,7 +94,7 @@ func NetConn(ctx context.Context, c *StdConn, msgType MessageType) net.Conn {
 }
 
 type netConn struct {
-	c       *StdConn
+	c       Conn
 	msgType MessageType
 
 	writeTimer   *time.Timer

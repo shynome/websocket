@@ -277,6 +277,10 @@ func (c *StdConn) Subprotocol() string {
 	return c.ws.Subprotocol()
 }
 
+func (c *StdConn) conn() any {
+	return c.ws
+}
+
 // DialOptions represents the options available to pass to Dial.
 type DialOptions struct {
 	// Subprotocols lists the subprotocols to negotiate with the server.

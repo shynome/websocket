@@ -156,6 +156,10 @@ func (c *StdConn) Subprotocol() string {
 	return c.subprotocol
 }
 
+func (c *StdConn) conn() any {
+	return c.rwc
+}
+
 func (c *StdConn) close() error {
 	c.closeMu.Lock()
 	defer c.closeMu.Unlock()
