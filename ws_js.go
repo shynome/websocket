@@ -577,6 +577,10 @@ func newMu(c *StdConn) *mu {
 	}
 }
 
+func (c *StdConn) newMu() muLocker {
+	return newMu(c)
+}
+
 func (m *mu) forceLock() {
 	m.ch <- struct{}{}
 }

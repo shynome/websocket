@@ -17,6 +17,13 @@ type Conn interface {
 	Write(ctx context.Context, typ MessageType, p []byte) error
 	Writer(ctx context.Context, typ MessageType) (io.WriteCloser, error)
 	conn() any
+	newMu() muLocker
 }
 
 var _ Conn = (*StdConn)(nil)
+
+type muLocker interface {
+	forceLock()
+	tryLock() bool
+	unlock()
+}
