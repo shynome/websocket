@@ -39,8 +39,8 @@ const (
 	// 11-16 are reserved for further control frames.
 )
 
-// StdConn provides a wrapper around the browser WebSocket API.
-type StdConn struct {
+// BrowserConn provides a wrapper around the browser WebSocket API.
+type BrowserConn struct {
 	noCopy noCopy
 	ws     wsjs.WebSocket
 
@@ -66,7 +66,9 @@ type StdConn struct {
 	readBuf    []wsjs.MessageEvent
 }
 
-func (c *StdConn) close(err error, wasClean bool) {
+var _ Conn = (*BrowserConn)(nil)
+
+func (c *BrowserConn) close(err error, wasClean bool) {
 	c.closeOnce.Do(func() {
 		runtime.SetFinalizer(c, nil)
 
@@ -79,7 +81,7 @@ func (c *StdConn) close(err error, wasClean bool) {
 	})
 }
 
-func (c *StdConn) init() {
+func (c *BrowserConn) init() {
 	c.closed = make(chan struct{})
 	c.readSignal = make(chan struct{}, 1)
 
@@ -118,19 +120,19 @@ func (c *StdConn) init() {
 		}
 	})
 
-	runtime.SetFinalizer(c, func(c *StdConn) {
+	runtime.SetFinalizer(c, func(c *BrowserConn) {
 		c.setCloseErr(errors.New("connection garbage collected"))
 		c.closeWithInternal()
 	})
 }
 
-func (c *StdConn) closeWithInternal() {
+func (c *BrowserConn) closeWithInternal() {
 	c.Close(StatusInternalError, "something went wrong")
 }
 
 // Read attempts to read a message from the connection.
 // The maximum time spent waiting is bounded by the context.
-func (c *StdConn) Read(ctx context.Context) (MessageType, []byte, error) {
+func (c *BrowserConn) Read(ctx context.Context) (MessageType, []byte, error) {
 	c.closeReadMu.Lock()
 	closedRead := c.closeReadCtx != nil
 	c.closeReadMu.Unlock()
@@ -151,7 +153,7 @@ func (c *StdConn) Read(ctx context.Context) (MessageType, []byte, error) {
 	return typ, p, nil
 }
 
-func (c *StdConn) read(ctx context.Context) (MessageType, []byte, error) {
+func (c *BrowserConn) read(ctx context.Context) (MessageType, []byte, error) {
 	select {
 	case <-ctx.Done():
 		c.Close(StatusPolicyViolation, "read timed out")
@@ -189,13 +191,13 @@ func (c *StdConn) read(ctx context.Context) (MessageType, []byte, error) {
 }
 
 // Ping is mocked out for Wasm.
-func (c *StdConn) Ping(ctx context.Context) error {
+func (c *BrowserConn) Ping(ctx context.Context) error {
 	return nil
 }
 
 // Write writes a message of the given type to the connection.
 // Always non blocking.
-func (c *StdConn) Write(ctx context.Context, typ MessageType, p []byte) error {
+func (c *BrowserConn) Write(ctx context.Context, typ MessageType, p []byte) error {
 	err := c.write(ctx, typ, p)
 	if err != nil {
 		// Have to ensure the WebSocket is closed after a write error
@@ -210,7 +212,7 @@ func (c *StdConn) Write(ctx context.Context, typ MessageType, p []byte) error {
 	return nil
 }
 
-func (c *StdConn) write(ctx context.Context, typ MessageType, p []byte) error {
+func (c *BrowserConn) write(ctx context.Context, typ MessageType, p []byte) error {
 	if c.isClosed() {
 		return net.ErrClosed
 	}
@@ -228,7 +230,7 @@ func (c *StdConn) write(ctx context.Context, typ MessageType, p []byte) error {
 // It will wait until the peer responds with a close frame
 // or the connection is closed.
 // It thus performs the full WebSocket close handshake.
-func (c *StdConn) Close(code StatusCode, reason string) error {
+func (c *BrowserConn) Close(code StatusCode, reason string) error {
 	err := c.exportedClose(code, reason)
 	if err != nil {
 		return fmt.Errorf("failed to close WebSocket: %w", err)
@@ -241,11 +243,11 @@ func (c *StdConn) Close(code StatusCode, reason string) error {
 //
 // note: No different from Close(StatusGoingAway, "") in WASM as there is no way to close
 // a WebSocket without the close handshake.
-func (c *StdConn) CloseNow() error {
+func (c *BrowserConn) CloseNow() error {
 	return c.Close(StatusGoingAway, "")
 }
 
-func (c *StdConn) exportedClose(code StatusCode, reason string) error {
+func (c *BrowserConn) exportedClose(code StatusCode, reason string) error {
 	c.closingMu.Lock()
 	defer c.closingMu.Unlock()
 
@@ -273,11 +275,11 @@ func (c *StdConn) exportedClose(code StatusCode, reason string) error {
 
 // Subprotocol returns the negotiated subprotocol.
 // An empty string means the default protocol.
-func (c *StdConn) Subprotocol() string {
+func (c *BrowserConn) Subprotocol() string {
 	return c.ws.Subprotocol()
 }
 
-func (c *StdConn) conn() any {
+func (c *BrowserConn) conn() any {
 	return c.ws
 }
 
@@ -291,7 +293,7 @@ type DialOptions struct {
 // The passed context bounds the maximum time spent waiting for the connection to open.
 // The returned *http.Response is always nil or a mock. It's only in the signature
 // to match the core API.
-func Dial(ctx context.Context, url string, opts *DialOptions) (*StdConn, *http.Response, error) {
+func Dial(ctx context.Context, url string, opts *DialOptions) (*BrowserConn, *http.Response, error) {
 	c, resp, err := dial(ctx, url, opts)
 	if err != nil {
 		return nil, nil, fmt.Errorf("failed to WebSocket dial %q: %w", url, err)
@@ -299,7 +301,7 @@ func Dial(ctx context.Context, url string, opts *DialOptions) (*StdConn, *http.R
 	return c, resp, nil
 }
 
-func dial(ctx context.Context, url string, opts *DialOptions) (*StdConn, *http.Response, error) {
+func dial(ctx context.Context, url string, opts *DialOptions) (*BrowserConn, *http.Response, error) {
 	if opts == nil {
 		opts = &DialOptions{}
 	}
@@ -312,7 +314,7 @@ func dial(ctx context.Context, url string, opts *DialOptions) (*StdConn, *http.R
 		return nil, nil, err
 	}
 
-	c := &StdConn{
+	c := &BrowserConn{
 		ws: ws,
 	}
 	c.init()
@@ -338,7 +340,7 @@ func dial(ctx context.Context, url string, opts *DialOptions) (*StdConn, *http.R
 
 // Reader attempts to read a message from the connection.
 // The maximum time spent waiting is bounded by the context.
-func (c *StdConn) Reader(ctx context.Context) (MessageType, io.Reader, error) {
+func (c *BrowserConn) Reader(ctx context.Context) (MessageType, io.Reader, error) {
 	typ, p, err := c.Read(ctx)
 	if err != nil {
 		return 0, nil, err
@@ -349,7 +351,7 @@ func (c *StdConn) Reader(ctx context.Context) (MessageType, io.Reader, error) {
 // Writer returns a writer to write a WebSocket data message to the connection.
 // It buffers the entire message in memory and then sends it when the writer
 // is closed.
-func (c *StdConn) Writer(ctx context.Context, typ MessageType) (io.WriteCloser, error) {
+func (c *BrowserConn) Writer(ctx context.Context, typ MessageType) (io.WriteCloser, error) {
 	return &writer{
 		c:   c,
 		ctx: ctx,
@@ -361,7 +363,7 @@ func (c *StdConn) Writer(ctx context.Context, typ MessageType) (io.WriteCloser, 
 type writer struct {
 	closed bool
 
-	c   *StdConn
+	c   *BrowserConn
 	ctx context.Context
 	typ MessageType
 
@@ -394,7 +396,7 @@ func (w *writer) Close() error {
 }
 
 // CloseRead implements *Conn.CloseRead for wasm.
-func (c *StdConn) CloseRead(ctx context.Context) context.Context {
+func (c *BrowserConn) CloseRead(ctx context.Context) context.Context {
 	c.closeReadMu.Lock()
 	ctx2 := c.closeReadCtx
 	if ctx2 != nil {
@@ -417,17 +419,17 @@ func (c *StdConn) CloseRead(ctx context.Context) context.Context {
 }
 
 // SetReadLimit implements *Conn.SetReadLimit for wasm.
-func (c *StdConn) SetReadLimit(n int64) {
+func (c *BrowserConn) SetReadLimit(n int64) {
 	c.msgReadLimit.Store(n)
 }
 
-func (c *StdConn) setCloseErr(err error) {
+func (c *BrowserConn) setCloseErr(err error) {
 	c.closeErrOnce.Do(func() {
 		c.closeErr = fmt.Errorf("WebSocket closed: %w", err)
 	})
 }
 
-func (c *StdConn) isClosed() bool {
+func (c *BrowserConn) isClosed() bool {
 	select {
 	case <-c.closed:
 		return true
@@ -446,7 +448,7 @@ type AcceptOptions struct {
 }
 
 // Accept is stubbed out for Wasm.
-func Accept(w http.ResponseWriter, r *http.Request, opts *AcceptOptions) (*StdConn, error) {
+func Accept(w http.ResponseWriter, r *http.Request, opts *AcceptOptions) (*BrowserConn, error) {
 	return nil, errors.New("unimplemented")
 }
 
@@ -566,18 +568,18 @@ const (
 )
 
 type jsMu struct {
-	c  *StdConn
+	c  *BrowserConn
 	ch chan struct{}
 }
 
-func newMu(c *StdConn) *jsMu {
+func newMu(c *BrowserConn) *jsMu {
 	return &jsMu{
 		c:  c,
 		ch: make(chan struct{}, 1),
 	}
 }
 
-func (c *StdConn) newMu() muLocker {
+func (c *BrowserConn) newMu() muLocker {
 	return newMu(c)
 }
 

@@ -90,6 +90,8 @@ type StdConn struct {
 	onPongReceived func(context.Context, []byte)
 }
 
+var _ Conn = (*StdConn)(nil)
+
 type connConfig struct {
 	subprotocol    string
 	rwc            io.ReadWriteCloser

@@ -20,8 +20,6 @@ type Conn interface {
 	newMu() muLocker
 }
 
-var _ Conn = (*StdConn)(nil)
-
 type muLocker interface {
 	forceLock()
 	tryLock() bool
