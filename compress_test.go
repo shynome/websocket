@@ -10,8 +10,8 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/coder/websocket/internal/test/assert"
-	"github.com/coder/websocket/internal/test/xrand"
+	"github.com/shynome/websocket/internal/test/assert"
+	"github.com/shynome/websocket/internal/test/xrand"
 )
 
 func Test_slidingWindow(t *testing.T) {

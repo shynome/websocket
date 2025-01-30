@@ -6,8 +6,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/coder/websocket"
-	"github.com/coder/websocket/wsjson"
+	"github.com/shynome/websocket"
+	"github.com/shynome/websocket/wsjson"
 )
 
 // Test_echoServer tests the echoServer by sending it 5 different messages

@@ -11,8 +11,8 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/coder/websocket/internal/errd"
-	"github.com/coder/websocket/internal/util"
+	"github.com/shynome/websocket/internal/errd"
+	"github.com/shynome/websocket/internal/util"
 )
 
 // Reader reads from the connection until there is a WebSocket

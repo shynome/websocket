@@ -8,7 +8,7 @@ import (
 	"net"
 	"time"
 
-	"github.com/coder/websocket/internal/errd"
+	"github.com/shynome/websocket/internal/errd"
 )
 
 // StatusCode represents a WebSocket status code.

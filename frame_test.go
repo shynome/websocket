@@ -13,7 +13,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/coder/websocket/internal/test/assert"
+	"github.com/shynome/websocket/internal/test/assert"
 )
 
 func TestHeader(t *testing.T) {
