@@ -565,13 +565,13 @@ const (
 	MessageBinary
 )
 
-type mu struct {
+type jsMu struct {
 	c  *StdConn
 	ch chan struct{}
 }
 
-func newMu(c *StdConn) *mu {
-	return &mu{
+func newMu(c *StdConn) *jsMu {
+	return &jsMu{
 		c:  c,
 		ch: make(chan struct{}, 1),
 	}
@@ -581,11 +581,11 @@ func (c *StdConn) newMu() muLocker {
 	return newMu(c)
 }
 
-func (m *mu) forceLock() {
+func (m *jsMu) forceLock() {
 	m.ch <- struct{}{}
 }
 
-func (m *mu) tryLock() bool {
+func (m *jsMu) tryLock() bool {
 	select {
 	case m.ch <- struct{}{}:
 		return true
@@ -594,7 +594,7 @@ func (m *mu) tryLock() bool {
 	}
 }
 
-func (m *mu) unlock() {
+func (m *jsMu) unlock() {
 	select {
 	case <-m.ch:
 	default:
