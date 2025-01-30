@@ -415,6 +415,6 @@ func TestDialViaProxy(t *testing.T) {
 	assert.Success(t, err)
 	assert.Equal(t, "", "true", resp.Header.Get("PROXIED"))
 
-	assertEcho(t, ctx, c)
-	assertClose(t, c)
+	assertEcho(t, ctx, c.(*websocket.StdConn))
+	assertClose(t, c.(*websocket.StdConn))
 }
