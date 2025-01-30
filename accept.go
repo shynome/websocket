@@ -96,11 +96,11 @@ func (opts *AcceptOptions) cloneWithDefaults() *AcceptOptions {
 //
 // Note that using the http.Request Context after Accept returns may lead to
 // unexpected behavior (see http.Hijacker).
-func Accept(w http.ResponseWriter, r *http.Request, opts *AcceptOptions) (Conn, error) {
+func Accept(w http.ResponseWriter, r *http.Request, opts *AcceptOptions) (*Conn, error) {
 	return accept(w, r, opts)
 }
 
-func accept(w http.ResponseWriter, r *http.Request, opts *AcceptOptions) (_ Conn, err error) {
+func accept(w http.ResponseWriter, r *http.Request, opts *AcceptOptions) (_ *Conn, err error) {
 	defer errd.Wrap(&err, "failed to accept WebSocket connection")
 
 	errCode, err := verifyClientRequest(w, r)
@@ -164,7 +164,7 @@ func accept(w http.ResponseWriter, r *http.Request, opts *AcceptOptions) (_ Conn
 	b, _ := brw.Reader.Peek(brw.Reader.Buffered())
 	brw.Reader.Reset(io.MultiReader(bytes.NewReader(b), netConn))
 
-	return newConn(connConfig{
+	return &Conn{newConn(connConfig{
 		subprotocol:    w.Header().Get("Sec-WebSocket-Protocol"),
 		rwc:            netConn,
 		client:         false,
@@ -175,7 +175,7 @@ func accept(w http.ResponseWriter, r *http.Request, opts *AcceptOptions) (_ Conn
 
 		br: brw.Reader,
 		bw: brw.Writer,
-	}), nil
+	})}, nil
 }
 
 func verifyClientRequest(w http.ResponseWriter, r *http.Request) (errCode int, _ error) {

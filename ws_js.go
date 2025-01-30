@@ -46,7 +46,7 @@ type BrowserConn struct {
 	readBuf    []wsjs.MessageEvent
 }
 
-var _ Conn = (*BrowserConn)(nil)
+var _ Stream = (*BrowserConn)(nil)
 
 func (c *BrowserConn) close(err error, wasClean bool) {
 	c.closeOnce.Do(func() {
@@ -267,7 +267,7 @@ func (c *BrowserConn) conn() any {
 // The passed context bounds the maximum time spent waiting for the connection to open.
 // The returned *http.Response is always nil or a mock. It's only in the signature
 // to match the core API.
-func Dial(ctx context.Context, url string, opts *DialOptions) (*BrowserConn, *http.Response, error) {
+func Dial(ctx context.Context, url string, opts *DialOptions) (*Conn, *http.Response, error) {
 	c, resp, err := dial(ctx, url, opts)
 	if err != nil {
 		return nil, nil, fmt.Errorf("failed to WebSocket dial %q: %w", url, err)
@@ -275,7 +275,7 @@ func Dial(ctx context.Context, url string, opts *DialOptions) (*BrowserConn, *ht
 	return c, resp, nil
 }
 
-func dial(ctx context.Context, url string, opts *DialOptions) (*BrowserConn, *http.Response, error) {
+func dial(ctx context.Context, url string, opts *DialOptions) (*Conn, *http.Response, error) {
 	if opts == nil {
 		opts = &DialOptions{}
 	}
@@ -304,7 +304,7 @@ func dial(ctx context.Context, url string, opts *DialOptions) (*BrowserConn, *ht
 		c.Close(StatusPolicyViolation, "dial timed out")
 		return nil, nil, ctx.Err()
 	case <-opench:
-		return c, &http.Response{
+		return &Conn{c}, &http.Response{
 			StatusCode: http.StatusSwitchingProtocols,
 		}, nil
 	case <-c.closed:

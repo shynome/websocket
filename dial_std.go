@@ -8,6 +8,6 @@ import (
 	"net/http"
 )
 
-func Dial(ctx context.Context, u string, opts *DialOptions) (Conn, *http.Response, error) {
+func Dial(ctx context.Context, u string, opts *DialOptions) (*Conn, *http.Response, error) {
 	return dialStd(ctx, u, opts, nil)
 }

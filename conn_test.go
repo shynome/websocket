@@ -479,7 +479,7 @@ type connTest struct {
 	ctx context.Context
 }
 
-func newConnTest(t testing.TB, dialOpts *websocket.DialOptions, acceptOpts *websocket.AcceptOptions) (tt *connTest, c1, c2 *websocket.StdConn) {
+func newConnTest(t testing.TB, dialOpts *websocket.DialOptions, acceptOpts *websocket.AcceptOptions) (tt *connTest, c1, c2 *websocket.Conn) {
 	if t, ok := t.(*testing.T); ok {
 		t.Parallel()
 	}
@@ -501,7 +501,7 @@ func newConnTest(t testing.TB, dialOpts *websocket.DialOptions, acceptOpts *webs
 	return tt, c1, c2
 }
 
-func (tt *connTest) goEchoLoop(c *websocket.StdConn) {
+func (tt *connTest) goEchoLoop(c *websocket.Conn) {
 	ctx, cancel := context.WithCancel(tt.ctx)
 
 	echoLoopErr := xsync.Go(func() error {
@@ -517,7 +517,7 @@ func (tt *connTest) goEchoLoop(c *websocket.StdConn) {
 	})
 }
 
-func (tt *connTest) goDiscardLoop(c *websocket.StdConn) {
+func (tt *connTest) goDiscardLoop(c *websocket.Conn) {
 	ctx, cancel := context.WithCancel(tt.ctx)
 
 	discardLoopErr := xsync.Go(func() error {
@@ -567,8 +567,8 @@ func BenchmarkConn(b *testing.B) {
 
 			bb.goEchoLoop(c2)
 
-			bytesWritten := c1.RecordBytesWritten()
-			bytesRead := c1.RecordBytesRead()
+			bytesWritten := c1.Stream.(*websocket.StdConn).RecordBytesWritten()
+			bytesRead := c1.Stream.(*websocket.StdConn).RecordBytesRead()
 
 			msg := []byte(strings.Repeat("1234", 128))
 			readBuf := make([]byte, len(msg))
@@ -653,7 +653,7 @@ func echoServer(w http.ResponseWriter, r *http.Request, opts *websocket.AcceptOp
 	return assertCloseStatus(websocket.StatusNormalClosure, err)
 }
 
-func assertEcho(tb testing.TB, ctx context.Context, c *websocket.StdConn) {
+func assertEcho(tb testing.TB, ctx context.Context, c *websocket.Conn) {
 	exp := xrand.String(xrand.Int(131072))
 
 	werr := xsync.Go(func() error {
@@ -674,7 +674,7 @@ func assertEcho(tb testing.TB, ctx context.Context, c *websocket.StdConn) {
 	}
 }
 
-func assertClose(tb testing.TB, c *websocket.StdConn) {
+func assertClose(tb testing.TB, c *websocket.Conn) {
 	tb.Helper()
 	err := c.Close(websocket.StatusNormalClosure, "")
 	assert.Success(tb, err)
@@ -710,7 +710,7 @@ func TestConnClosePropagation(t *testing.T) {
 	t.Parallel()
 
 	want := []byte("hello")
-	keepWriting := func(c *websocket.StdConn) <-chan error {
+	keepWriting := func(c *websocket.Conn) <-chan error {
 		return xsync.Go(func() error {
 			for {
 				err := c.Write(context.Background(), websocket.MessageText, want)
@@ -720,7 +720,7 @@ func TestConnClosePropagation(t *testing.T) {
 			}
 		})
 	}
-	keepReading := func(c *websocket.StdConn) <-chan error {
+	keepReading := func(c *websocket.Conn) <-chan error {
 		return xsync.Go(func() error {
 			for {
 				_, got, err := c.Read(context.Background())
@@ -742,7 +742,7 @@ func TestConnClosePropagation(t *testing.T) {
 			assert.ErrorIs(t, net.ErrClosed, err)
 		}
 	}
-	checkConnErrs := func(t *testing.T, conn ...*websocket.StdConn) {
+	checkConnErrs := func(t *testing.T, conn ...*websocket.Conn) {
 		for _, c := range conn {
 			// Check write error.
 			err := c.Write(context.Background(), websocket.MessageText, want)

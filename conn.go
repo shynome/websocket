@@ -5,7 +5,11 @@ import (
 	"io"
 )
 
-type Conn interface {
+type Conn struct {
+	Stream
+}
+
+type Stream interface {
 	Close(code StatusCode, reason string) (err error)
 	CloseNow() (err error)
 	CloseRead(ctx context.Context) context.Context
