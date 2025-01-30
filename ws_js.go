@@ -268,6 +268,9 @@ func (c *BrowserConn) conn() any {
 // The returned *http.Response is always nil or a mock. It's only in the signature
 // to match the core API.
 func Dial(ctx context.Context, url string, opts *DialOptions) (*Conn, *http.Response, error) {
+	if opts != nil && opts.HTTPClient != nil {
+		return dialStd(ctx, url, opts, nil)
+	}
 	c, resp, err := dial(ctx, url, opts)
 	if err != nil {
 		return nil, nil, fmt.Errorf("failed to WebSocket dial %q: %w", url, err)
