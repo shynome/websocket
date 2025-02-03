@@ -140,6 +140,9 @@ func (c *BrowserConn) read(ctx context.Context) (MessageType, []byte, error) {
 		return 0, nil, ctx.Err()
 	case <-c.readSignal:
 	case <-c.closed:
+		if c.closeErr != nil {
+			return 0, nil, c.closeErr
+		}
 		return 0, nil, net.ErrClosed
 	}
 
